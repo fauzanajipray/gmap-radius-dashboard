@@ -1,149 +1,142 @@
 function initialApp() {
-    return {
-        selectedTypes: ["salesUnit", "service", "spareParts"],
-        showRadius: true,
-        map: null,
-        markers: [],
-        selectedTypes: ["salesUnit", "service", "spareParts"],
-        showRadius: true,
-        map: null,
-        markers: [],
-        async initMap() {
-            const {
-                Map
-            } = await google.maps.importLibrary("maps");
-            const dataJson = this.getDataJson();
-            let centerOption = this.calculateCenter(dataJson);
-            this.map = new Map(document.getElementById("map"), {
-                center: centerOption,
-                zoom: 5,
-            });
-            dataJson.forEach((location) => {
-                this.addMarker({
-                    lat: location.lat,
-                    lng: location.lng
-                });
-                // this.addCircle(location);
-            });
-        },
-        addMarker(position) {
-            const marker = new google.maps.Marker({
-                position: position,
-                map: this.map,
-                title: location.name,
-            });
-            this.markers.push(marker);
-        },
-        addCircle(location, type) {
-            let radius = new google.maps.Circle({
-                strokeColor: this.getRadiusColor(location.type),
-                strokeOpacity: 0.8,
-                strokeWeight: 2,
-                fillColor: this.getRadiusColor(location.type),
-                fillOpacity: 0.35,
-                map: this.map,
-                center: {
-                    lat: location.lat,
-                    lng: location.lng
-                },
-                radius: parseInt(location.radius) * 1000, // Convert to meters
-            });
-        },
-        calculateCenter: (coordinates) => {
-            if (coordinates.length === 0) {
-                return null;
-            }
-            let totalLat = 0;
-            let totalLng = 0;
-            for (const coord of coordinates) {
-                totalLat += coord.lat;
-                totalLng += coord.lng || coord.lng; // Assuming your longitude key can be 'lng'
-            }
-            const avgLat = totalLat / coordinates.length;
-            const avgLng = totalLng / coordinates.length;
-            return {
-                lat: avgLat,
-                lng: avgLng
-            };
-        },
-        getRadiusColor(type) {
-            switch (type) {
-                case "salesUnit":
-                    return "#FF0000"; // Red
-                case "service":
-                    return "#00FF00"; // Green
-                case "spareParts":
-                    return "#0000FF"; // Blue
-                default:
-                    return "#000000"; // Black (fallback)
-            }
-        },
-        setMapOnAll(map) {
-            for (let i = 0; i < this.markers.length; i++) {
-                console.log(this.markers[i]);
-                this.markers[i].setMap(map);
-            }
-        },
-        hideMarkers() {
-            this.setMapOnAll(null);
-        },
-        showMarkers() {
-            this.setMapOnAll(map);
-        },
-        toggleShowRadius(val) {
-            if (val) {
-                this.showMarkers();
-            } else {
-                this.hideMarkers();
-            }
-        },
-        getDataJson() {
-            // for development purpose
-            var data = initCordinate();
-            return initCordinate();
-        },
-    };
-}
-
-/**
- *   For Test
- */
-function generateRandomCoordinates() {
-    const minLat = -11.0;
-    const maxLat = 5.0;
-    const minLng = 95.0;
-    const maxLng = 141.0;
-
-    const randomLat = Math.random() * (maxLat - minLat) + minLat;
-    const randomLng = Math.random() * (maxLng - minLng) + minLng;
-
-    return {
-        lat: randomLat,
-        lng: randomLng
-    };
-}
-
-function initCordinate() {
-    let dataJson = [];
-    for (let i = 1; i <= 50; i++) {
-        const coordinates = generateRandomCoordinates();
-        let type = "";
-        if (i % 3 === 0) {
-            type = "salesUnit";
-        } else if (i % 3 === 1) {
-            type = "spareParts";
-        } else {
-            type = "service";
+  return {
+    types: [],
+    selectedTypes: [],
+    locations: [],
+    tempLocation: [],
+    map: null,
+    markers: [],
+    circles: [],
+    showRadius: true,
+    tempLocation: [],
+    isLoading: false,
+    async initMap() {
+      const { Map } = await google.maps.importLibrary("maps");
+      this.types = await this.fetchTypes();
+      this.map = new Map(document.getElementById("map"), {
+        center: { lat: -0.789275, lng: 113.921327 },
+        zoom: 6,
+      });
+      this.types.forEach((e) => this.selectedTypes.push(e.id));
+    },
+    calculateCenter: (coordinates) => {
+      if (coordinates.length === 0) {
+        return null;
+      }
+      let totalLat = 0.0;
+      let totalLng = 0.0;
+      for (const coord of coordinates) {
+        const lat = parseFloat(coord.lat);
+        const lng = parseFloat(coord.lng);
+        if (!isNaN(lat)) {
+          totalLat += lat;
         }
+        if (!isNaN(lng)) {
+          totalLng += lng;
+        }
+      }
 
-        dataJson.push({
-            type: type,
-            radius: Math.floor(Math.random() * 30) + 1,
-            name: `${type.charAt(0).toUpperCase() + type.slice(1)} ${i}`,
-            lat: coordinates.lat,
-            lng: coordinates.lng,
-        });
-    }
+      const avgLat = (totalLat / coordinates.length);
+      const avgLng = (totalLng / coordinates.length);
 
-    return dataJson;
+      return {
+        lat: parseFloat(avgLat),
+        lng: parseFloat(avgLng),
+      };
+    },
+    fetchTypes: async () => {
+      try {
+        const response = await fetch(
+          `${BASE_URL}/wp-json/api/gmapradius/v1/types/`
+        );
+        const data = await response.json();
+        return data;
+      } catch (error) {
+        console.error("Error:", error);
+      }
+    },
+    fetchLocations: async (types) => {
+      try {
+        var url = `${BASE_URL}/wp-json/api/gmapradius/v1/locations`;
+        if (types) {
+          url += `?types=${JSON.stringify(types)}`;
+        }
+        const response = await fetch(url);
+        const data = await response.json();
+        return data;
+      } catch (error) {
+        console.error("Error:", error);
+      }
+    },
+    async selectedTypesChange(types_id) {
+      this.isLoading = true;
+      this.locations = await this.fetchLocations(types_id);
+      // remove circle
+      this.circles.forEach((circle) => {
+        google.maps.event.clearListeners(circle, "click_handler_name");
+        google.maps.event.clearListeners(circle, "drag_handler_name");
+        circle.setRadius(0);
+        circle.setMap(null);
+      });
+      let centerOption = this.calculateCenter(this.locations);
+      this.map.setCenter(centerOption);
+      this.map.setZoom(6);
+      this.locations.forEach((location) => {
+        const lat = parseFloat(location.lat);
+        const lng = parseFloat(location.lng);
+        // this.addMarker({ lat: lat, lng: lng });
+        this.addCircle(location);
+      });
+      this.isLoading = false;
+    },
+    addMarker(position) {
+      const marker = new google.maps.Marker({
+        position: position,
+        map: this.map,
+        title: location.name,
+      });
+      this.markers.push(marker);
+    },
+    addCircle(location) {
+      const lat = parseFloat(location.lat);
+      const lng = parseFloat(location.lng);
+      const color = this.getRadiusColor(location.type_id);
+      let radius = new google.maps.Circle({
+        strokeColor: color,
+        strokeOpacity: 0.8,
+        strokeWeight: 2,
+        fillColor: color,
+        fillOpacity: 0.35,
+        map: this.map,
+        center: {
+          lat: lat,
+          lng: lng,
+        },
+        radius: parseInt(location.radius) * 1000, // Convert to meters
+      });
+      radius.addListener('click', () => {
+        // Zoom to level 8 when the circle is clicked
+        this.map.setZoom(8);
+        // Optionally, you can also center the map on the clicked circle's location
+        this.map.setCenter(radius.getCenter());
+      });
+      this.circles.push(radius);
+    },
+    getRadiusColor(id) {
+      const type = this.types.find((e) => id === e.id);
+      return type ? type.color : "#000000";
+    },
+    setMapOnAll(map) {
+      for (let i = 0; i < this.markers.length; i++) {
+        // console.log(this.markers[i]);
+        this.markers[i].setMap(map);
+      }
+    },
+    hideMarkers() {
+      this.setMapOnAll(null);
+    },
+    showMarkers() {
+      this.setMapOnAll(map);
+    },
+  };
 }

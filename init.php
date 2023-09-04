@@ -61,11 +61,9 @@ function gmapradius_activation()
 // run the install scripts upon plugin activation
 register_activation_hook(__FILE__, 'gmapradius_activation');
 
-
-
 //menu items
-add_action('admin_menu', 'modifymenu');
-function modifymenu()
+add_action('admin_menu', 'gmapradius_modifymenu');
+function gmapradius_modifymenu()
 {
 	add_menu_page(
         'Google Maps Radius',
@@ -131,8 +129,7 @@ function modifymenu()
 
 }
 
-
-function load_assets_only_on_plugin_pages() {
+function gmapradius_load_assets_only_on_plugin_pages() {
     global $pagenow;
     
     // Check if we are on one of the specific plugin pages
@@ -151,7 +148,7 @@ function load_assets_only_on_plugin_pages() {
 }
 
 // Hook the asset loading function to the admin_enqueue_scripts action
-add_action('admin_enqueue_scripts', 'load_assets_only_on_plugin_pages');
+add_action('admin_enqueue_scripts', 'gmapradius_load_assets_only_on_plugin_pages');
 
 
 define('ROOTDIR', plugin_dir_path(__FILE__));
@@ -162,3 +159,4 @@ require_once(ROOTDIR . 'admin/type-edit.php');
 require_once(ROOTDIR . 'admin/location-list.php');
 require_once(ROOTDIR . 'admin/location-create.php');
 require_once(ROOTDIR . 'admin/location-edit.php');
+require_once(ROOTDIR . 'admin/api.php');
