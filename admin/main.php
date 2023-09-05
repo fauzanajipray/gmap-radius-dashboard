@@ -20,7 +20,7 @@ function gmapradius_map()
     <div class="wrap">
         <div class="mb-3">
             <h1 class="wp-heading-inline">Radius Map</h1>
-            <p>Lorem ipsum dolor sit amet</p>
+            <!-- <p>Lorem ipsum dolor sit amet</p> -->
         </div>
         <!-- Display Message -->
         <?php if (!empty($message)) : ?>
