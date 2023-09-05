@@ -1,13 +1,15 @@
 function initialApp() {
+  let circles = [];
+  let markers = [];
+  let currentInfoWindow = null;
+
   return {
     types: [],
     selectedTypes: [],
     locations: [],
     tempLocation: [],
     map: null,
-    markers: [],
-    circles: [],
-    showRadius: true,
+    showRadius: false,
     tempLocation: [],
     isLoading: false,
     async initMap() {
@@ -17,6 +19,10 @@ function initialApp() {
         center: { lat: -0.789275, lng: 113.921327 },
         zoom: 6,
         mapTypeId: "satellite",
+        mapTypeControlOptions: {
+          style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
+          position: google.maps.ControlPosition.TOP_RIGHT,
+        },
       });
       this.types.forEach((e) => this.selectedTypes.push(e.id));
     },
@@ -71,22 +77,30 @@ function initialApp() {
     },
     async selectedTypesChange(types_id) {
       this.isLoading = true;
-      this.locations = await this.fetchLocations(types_id);
+
+      for (var i = 0; i < markers.length; i++) {
+        markers[i].setMap(null);
+      }
+      markers = [];
+
       // Clear all existing circles
-      this.circles.forEach((circle) => {
+      circles.forEach((circle) => {
         google.maps.event.clearListeners(circle, "click");
         circle.setMap(null);
       });
-      this.circles = []; // Clear the array completely
+      circles = []; // Clear the array completely
 
+      this.locations = await this.fetchLocations(types_id);
       let centerOption = this.calculateCenter(this.locations);
       this.map.setCenter(centerOption);
+      this.map.setZoom(6);
 
       // Add new circles for the updated locations
       this.locations.forEach((location) => {
         const lat = parseFloat(location.lat);
         const lng = parseFloat(location.lng);
         this.addCircle(location);
+        // this.addMarker({ lat: lat, lng: lng });
       });
 
       this.isLoading = false;
@@ -97,7 +111,7 @@ function initialApp() {
         map: this.map,
         title: location.name,
       });
-      this.markers.push(marker);
+      markers.push(marker);
     },
     addCircle(location) {
       const lat = parseFloat(location.lat);
@@ -116,13 +130,20 @@ function initialApp() {
         },
         radius: parseInt(location.radius) * 1000, // Convert to meters
       });
-      circle.addListener("click", () => {
-        // Zoom to level 8 when the circle is clicked
-        // this.map.setZoom(8);
-        // Optionally, you can also center the map on the clicked circle's location
-        this.map.setCenter(circle.getCenter());
+      const infoWindow = new google.maps.InfoWindow({
+        content: `${location.name}`,
       });
-      this.circles.push(circle);
+      circle.addListener("click", () => {
+        if (currentInfoWindow) {
+          currentInfoWindow.close();
+        }
+        this.map.setZoom(8);
+        this.map.setCenter(circle.getCenter());
+        infoWindow.setPosition(circle.getCenter());
+        infoWindow.open(this.map);
+        currentInfoWindow = infoWindow;
+      });
+      circles.push(circle);
     },
     getRadiusColor(id) {
       const type = this.types.find((e) => id === e.id);
