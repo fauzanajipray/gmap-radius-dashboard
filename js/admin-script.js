@@ -78,12 +78,11 @@ function initialApp() {
     async selectedTypesChange(types_id) {
       this.isLoading = true;
 
-      for (var i = 0; i < markers.length; i++) {
-        markers[i].setMap(null);
-      }
+      markers.forEach((marker) => {
+        google.maps.event.clearListeners(marker, "click");
+        marker.setMap(null);
+      });
       markers = [];
-
-      // Clear all existing circles
       circles.forEach((circle) => {
         google.maps.event.clearListeners(circle, "click");
         circle.setMap(null);
@@ -95,21 +94,38 @@ function initialApp() {
       this.map.setCenter(centerOption);
       this.map.setZoom(6);
 
+      if (currentInfoWindow) {
+        currentInfoWindow.close();
+      }
+
       // Add new circles for the updated locations
       this.locations.forEach((location) => {
-        const lat = parseFloat(location.lat);
-        const lng = parseFloat(location.lng);
         this.addCircle(location);
-        // this.addMarker({ lat: lat, lng: lng });
+        this.addMarker(location);
       });
 
       this.isLoading = false;
     },
-    addMarker(position) {
+    addMarker(location) {
+      const lat = parseFloat(location.lat);
+      const lng = parseFloat(location.lng);
       const marker = new google.maps.Marker({
-        position: position,
+        position: { lat: lat, lng: lng },
         map: this.map,
         title: location.name,
+      });
+      const infoWindow = new google.maps.InfoWindow({
+        content: `${location.name}`,
+      });
+      marker.addListener("click", () => {
+        if (currentInfoWindow) {
+          currentInfoWindow.close();
+        }
+        this.map.setZoom(8.5);
+        this.map.setCenter(marker.getPosition());
+        infoWindow.setPosition(marker);
+        infoWindow.open(this.map, marker);
+        currentInfoWindow = infoWindow;
       });
       markers.push(marker);
     },
@@ -137,7 +153,7 @@ function initialApp() {
         if (currentInfoWindow) {
           currentInfoWindow.close();
         }
-        this.map.setZoom(8);
+        this.map.setZoom(8.5);
         this.map.setCenter(circle.getCenter());
         infoWindow.setPosition(circle.getCenter());
         infoWindow.open(this.map);

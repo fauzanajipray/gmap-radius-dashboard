@@ -70,7 +70,7 @@ function gmapradius_modifymenu()
         'GMap Radius',
         'manage_options',
         'gmapradius',
-        'gmapradius_map'
+        'gmapradius_map',
     );
 
 	add_submenu_page(
