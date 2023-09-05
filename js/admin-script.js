@@ -16,6 +16,7 @@ function initialApp() {
       this.map = new Map(document.getElementById("map"), {
         center: { lat: -0.789275, lng: 113.921327 },
         zoom: 6,
+        mapTypeId: "satellite",
       });
       this.types.forEach((e) => this.selectedTypes.push(e.id));
     },
@@ -36,8 +37,8 @@ function initialApp() {
         }
       }
 
-      const avgLat = (totalLat / coordinates.length);
-      const avgLng = (totalLng / coordinates.length);
+      const avgLat = totalLat / coordinates.length;
+      const avgLng = totalLng / coordinates.length;
 
       return {
         lat: parseFloat(avgLat),
@@ -71,22 +72,23 @@ function initialApp() {
     async selectedTypesChange(types_id) {
       this.isLoading = true;
       this.locations = await this.fetchLocations(types_id);
-      // remove circle
+      // Clear all existing circles
       this.circles.forEach((circle) => {
-        google.maps.event.clearListeners(circle, "click_handler_name");
-        google.maps.event.clearListeners(circle, "drag_handler_name");
-        circle.setRadius(0);
+        google.maps.event.clearListeners(circle, "click");
         circle.setMap(null);
       });
+      this.circles = []; // Clear the array completely
+
       let centerOption = this.calculateCenter(this.locations);
       this.map.setCenter(centerOption);
-      this.map.setZoom(6);
+
+      // Add new circles for the updated locations
       this.locations.forEach((location) => {
         const lat = parseFloat(location.lat);
         const lng = parseFloat(location.lng);
-        // this.addMarker({ lat: lat, lng: lng });
         this.addCircle(location);
       });
+
       this.isLoading = false;
     },
     addMarker(position) {
@@ -101,7 +103,7 @@ function initialApp() {
       const lat = parseFloat(location.lat);
       const lng = parseFloat(location.lng);
       const color = this.getRadiusColor(location.type_id);
-      let radius = new google.maps.Circle({
+      let circle = new google.maps.Circle({
         strokeColor: color,
         strokeOpacity: 0.8,
         strokeWeight: 2,
@@ -114,29 +116,17 @@ function initialApp() {
         },
         radius: parseInt(location.radius) * 1000, // Convert to meters
       });
-      radius.addListener('click', () => {
+      circle.addListener("click", () => {
         // Zoom to level 8 when the circle is clicked
-        this.map.setZoom(8);
+        // this.map.setZoom(8);
         // Optionally, you can also center the map on the clicked circle's location
-        this.map.setCenter(radius.getCenter());
+        this.map.setCenter(circle.getCenter());
       });
-      this.circles.push(radius);
+      this.circles.push(circle);
     },
     getRadiusColor(id) {
       const type = this.types.find((e) => id === e.id);
       return type ? type.color : "#000000";
-    },
-    setMapOnAll(map) {
-      for (let i = 0; i < this.markers.length; i++) {
-        // console.log(this.markers[i]);
-        this.markers[i].setMap(map);
-      }
-    },
-    hideMarkers() {
-      this.setMapOnAll(null);
-    },
-    showMarkers() {
-      this.setMapOnAll(map);
     },
   };
 }

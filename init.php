@@ -127,13 +127,22 @@ function gmapradius_modifymenu()
 		'gmap_location_edit'
 	);
 
+    add_submenu_page(
+		'gmapradius',
+		'Setting',
+		'Settings   ',
+		'manage_options',
+		'gmapradius_settings',
+		'gmapradius_settings',
+	);
+
 }
 
 function gmapradius_load_assets_only_on_plugin_pages() {
     global $pagenow;
     
     // Check if we are on one of the specific plugin pages
-    $plugin_pages = ['gmapradius', 'gmap_type_list', 'gmap_type_create', 'gmap_type_edit', 'gmap_location_list', 'gmap_location_create', 'gmap_location_edit'];
+    $plugin_pages = ['gmapradius', 'gmap_type_list', 'gmap_type_create', 'gmap_type_edit', 'gmap_location_list', 'gmap_location_create', 'gmap_location_edit', 'gmapradius_settings'];
 
     if ($pagenow === 'admin.php' && isset($_GET['page']) && in_array($_GET['page'], $plugin_pages)) {
         // Enqueue assets specific to your plugin's pages
@@ -160,3 +169,4 @@ require_once(ROOTDIR . 'admin/location-list.php');
 require_once(ROOTDIR . 'admin/location-create.php');
 require_once(ROOTDIR . 'admin/location-edit.php');
 require_once(ROOTDIR . 'admin/api.php');
+require_once(ROOTDIR . 'admin/settings.php');

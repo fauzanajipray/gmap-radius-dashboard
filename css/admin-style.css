@@ -96,3 +96,7 @@ label {
 .switch-loading {
   background-color: #ccc;
 }
+
+a.showPassword:focus {
+  box-shadow: none;
+}
